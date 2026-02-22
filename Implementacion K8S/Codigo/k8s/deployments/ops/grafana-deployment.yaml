@@ -64,6 +64,9 @@ spec:
         - name: grafana-dashboards
           mountPath: /etc/grafana/provisioning/dashboards/pharmago-overview.json
           subPath: pharmago-overview.json
+        - name: grafana-dashboard-infra
+          mountPath: /etc/grafana/provisioning/dashboards/pharmago-infra.json
+          subPath: pharmago-infra.json
         resources:
           requests:
             memory: "256Mi"
@@ -102,4 +105,7 @@ spec:
       - name: grafana-dashboards
         configMap:
           name: grafana-dashboards
+      - name: grafana-dashboard-infra
+        configMap:
+          name: grafana-dashboard-infra
 

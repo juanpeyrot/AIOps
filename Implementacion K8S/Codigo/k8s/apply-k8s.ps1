@@ -47,6 +47,7 @@ kubectl apply -f configmaps\prometheus-config.yaml
 kubectl apply -f configmaps\otel-collector-config.yaml
 kubectl apply -f configmaps\grafana-provisioning.yaml
 kubectl apply -f configmaps\grafana-dashboards.yaml
+kubectl apply -f configmaps\grafana-dashboard-infra.yaml
 kubectl apply -f configmaps\logstash-config.yaml
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
@@ -117,8 +118,13 @@ do {
 kubectl apply -f services\ops\otel-collector-service.yaml
 kubectl apply -f deployments\ops\otel-collector-deployment.yaml
 
+kubectl apply -f deployments\ops\prometheus-serviceaccount.yaml
+kubectl apply -f deployments\ops\prometheus-clusterrole.yaml
+kubectl apply -f deployments\ops\prometheus-clusterrolebinding.yaml
 kubectl apply -f services\ops\prometheus-service.yaml
 kubectl apply -f deployments\ops\prometheus-deployment.yaml
+kubectl apply -f services\ops\node-exporter-service.yaml
+kubectl apply -f deployments\ops\node-exporter-daemonset.yaml
 
 kubectl apply -f services\ops\grafana-service.yaml
 kubectl apply -f deployments\ops\grafana-deployment.yaml
