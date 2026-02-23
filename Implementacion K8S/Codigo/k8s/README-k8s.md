@@ -11,7 +11,7 @@ La aplicación se ejecuta en un único nodo (minikube) con todos los componentes
 - **Base de datos**: pharmago-db (SQL Server)
 - **Telemetría y observabilidad**: otlp-collector, prometheus, grafana, elasticsearch, kibana, logstash
 
-**Requisito de memoria**: El nodo debe tener al menos 8GB de RAM para soportar Elasticsearch (6Gi), Kibana (2Gi), SQL Server (2Gi) y el resto de servicios.
+**Requisito de memoria**: El nodo debe tener al menos 6GB de RAM para soportar Elasticsearch (6Gi), Kibana (2Gi), SQL Server (2Gi) y el resto de servicios.
 
 ## Prerrequisitos
 
@@ -21,17 +21,17 @@ La aplicación se ejecuta en un único nodo (minikube) con todos los componentes
 
 ## Configuración Inicial
 
-### 1. Crear cluster Minikube (un nodo, 8GB RAM)
+### 1. Crear cluster Minikube (un nodo, 6GB RAM)
 
 ```bash
 # Crear cluster con suficiente memoria para telemetría (Elasticsearch, Kibana, etc.)
-minikube start --memory=8192 --cpus=4
+minikube start --memory=6144 --cpus=4
 
 # Verificar nodo
 kubectl get nodes
 ```
 
-**Importante**: Usa al menos 8GB de RAM. Con menos, Elasticsearch y otros pods de observabilidad pueden fallar por OOM.
+**Importante**: Usa al menos 6GB de RAM. Con menos, Elasticsearch y otros pods de observabilidad pueden fallar por OOM.
 
 ### 2. Etiquetar nodo
 
@@ -306,7 +306,7 @@ Si Elasticsearch está en `CrashLoopBackOff` con `OOMKilled`:
    ```bash
    minikube stop
    minikube delete
-   minikube start --memory=8192 --cpus=4
+   minikube start --memory=6144 --cpus=4
    ```
 
 3. **Reducir memoria heap de Elasticsearch:**

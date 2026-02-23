@@ -62,17 +62,17 @@ spec:
         - name: xpack.watcher.enabled
           value: "false"
         - name: ES_JAVA_OPTS
-          value: "-Xms3g -Xmx3g"
+          value: "-Xms2g -Xmx2g"
         volumeMounts:
         - name: elasticsearch-storage
           mountPath: /usr/share/elasticsearch/data
         resources:
           requests:
+            memory: "4Gi"
+            cpu: "500m"
+          limits:
             memory: "6Gi"
             cpu: "1000m"
-          limits:
-            memory: "12Gi"
-            cpu: "2000m"
         livenessProbe:
           httpGet:
             path: /_cluster/health

@@ -41,11 +41,18 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 15
         readinessProbe:
           httpGet:
             path: /health
             port: 80
-          initialDelaySeconds: 30
+          initialDelaySeconds: 5
           periodSeconds: 10
         livenessProbe:
           httpGet:

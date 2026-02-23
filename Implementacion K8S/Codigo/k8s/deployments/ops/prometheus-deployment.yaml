@@ -70,10 +70,10 @@ spec:
           httpGet:
             path: /-/ready
             port: 9090
-          initialDelaySeconds: 15
+          initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
-          failureThreshold: 30
+          failureThreshold: 45
         readinessProbe:
           httpGet:
             path: /-/ready

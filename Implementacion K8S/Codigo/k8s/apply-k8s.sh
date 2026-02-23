@@ -15,7 +15,7 @@ fi
 # Verificar que minikube está corriendo
 if ! minikube status &> /dev/null; then
     echo "Error: Minikube no está corriendo."
-    echo "Ejecuta: minikube start --memory=8192 --cpus=4"
+    echo "Ejecuta: minikube start --memory=6144 --cpus=4"
     exit 1
 fi
 
