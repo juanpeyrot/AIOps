@@ -20,6 +20,9 @@ Esto levanta automáticamente:
 - Frontend Angular
 - Prometheus
 - Grafana
+- Elasticsearch
+- Kibana
+- Logstash
 - OpenTelemetry Collector
 
 ### Acceso a Servicios
@@ -32,6 +35,8 @@ Esto levanta automáticamente:
 - **Grafana**: http://localhost:3000 (admin/admin)
   - Datasource de Prometheus pre-configurado
   - Dashboard "PharmaGo - Overview" incluido
+- **Kibana**: http://localhost:5601
+  - Visualización y análisis de logs de la aplicación
 
 ### Persistencia de Datos
 
@@ -52,6 +57,37 @@ docker-compose down -v
 - Base de datos SQL Server (usuario sa, contraseña Str0ngP@ssword!)
 - Métricas de Prometheus (30 días)
 - Dashboards de Grafana
+
+### Conectar a la Base de Datos (SQL Server Management Studio)
+
+Para conectarte a la base de datos con SSMS cuando la app corre con Docker Compose:
+
+- **Server name:** `localhost,11433`
+- **Autenticación:** SQL Server Authentication
+- **Login:** `sa`
+- **Password:** `Str0ngP@ssword!`
+- **Base de datos:** `PharmaDb`
+
+Asegúrate de que el contenedor de la base de datos esté levantado (`docker-compose up -d pharmago-db`).
+
+### Datos Iniciales (Seed)
+
+La app necesita roles y datos base. Ejecuta el script de seed después de levantar la aplicación:
+
+1. Levanta la app (al menos la DB): `docker-compose up -d` o `docker-compose up pharmago-db`
+2. Conecta SSMS a `localhost,11433` (ver apartado anterior)
+3. Abre `Backend/seed-data.sql` en SSMS
+4. Ejecuta el script (F5)
+
+El script inserta:
+- **Roles:** Administrator, Employee, Owner (obligatorios para la app)
+- **UnitMeasures y Presentations** para medicamentos
+- **Farmacia de ejemplo**
+- **Usuarios de prueba:** `admin`, `owner001`, `empleado01` (password: `Abcdef12.`)
+- **Invitación** para registro: usuario `nuevo_empleado`, código `123456`
+- **Medicamentos de ejemplo**
+
+Puedes ejecutarlo varias veces sin duplicar datos (usa `IF NOT EXISTS`).
 
 ---
 
