@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crash-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crash
+  template:
+    metadata:
+      labels:
+        app: crash
+    spec:
+      containers:
+      - name: crash
+        image: busybox
+        command: ["sh", "-c", "echo 'Inicio' && sleep 2 && exit 1"]

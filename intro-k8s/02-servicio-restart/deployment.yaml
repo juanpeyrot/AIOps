@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ping-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ping
+  template:
+    metadata:
+      labels:
+        app: ping
+    spec:
+      containers:
+      - name: ping
+        image: nginx:alpine
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ping-svc
+spec:
+  selector:
+    app: ping
+  ports:
+  - port: 80
