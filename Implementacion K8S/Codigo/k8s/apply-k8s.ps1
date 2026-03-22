@@ -48,7 +48,6 @@ kubectl apply -f configmaps\otel-collector-config.yaml
 kubectl apply -f configmaps\grafana-provisioning.yaml
 kubectl apply -f configmaps\grafana-dashboards.yaml
 kubectl apply -f configmaps\grafana-dashboard-infra.yaml
-kubectl apply -f configmaps\fluent-bit-config.yaml
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host "`n5. Creando StorageClass y PersistentVolumes..." -ForegroundColor Yellow
@@ -57,11 +56,10 @@ if ($LASTEXITCODE -ne 0) { exit 1 }
 
 # Eliminar PVs existentes en estado Released para recrearlos
 Write-Host "   Limpiando PVs existentes..." -ForegroundColor Cyan
-kubectl delete pv sql-pv elasticsearch-pv prometheus-pv grafana-pv --ignore-not-found=true
+kubectl delete pv sql-pv prometheus-pv grafana-pv --ignore-not-found=true
 Start-Sleep -Seconds 2
 
 kubectl apply -f persistent-volumes\sql-pv.yaml
-kubectl apply -f persistent-volumes\elasticsearch-pv.yaml
 kubectl apply -f persistent-volumes\prometheus-pv.yaml
 kubectl apply -f persistent-volumes\grafana-pv.yaml
 if ($LASTEXITCODE -ne 0) { exit 1 }
@@ -91,30 +89,6 @@ do {
 } while ($true)
 
 Write-Host "`n7. Desplegando servicios de observabilidad..." -ForegroundColor Yellow
-# Elasticsearch primero
-kubectl apply -f services\ops\elasticsearch-service.yaml
-kubectl apply -f deployments\ops\elasticsearch-deployment.yaml
-
-# Esperar a que Elasticsearch esté listo
-Write-Host "   Esperando a que Elasticsearch esté listo..." -ForegroundColor Yellow
-$timeout = 0
-$maxTimeout = 300
-do {
-    $podReady = kubectl get pod -l app=elasticsearch -n pharmago -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>&1
-    if ($podReady -eq "True") {
-        Write-Host "   Elasticsearch listo!" -ForegroundColor Green
-        break
-    }
-    Start-Sleep -Seconds 5
-    $timeout += 5
-    if ($timeout -ge $maxTimeout) {
-        Write-Host "   Timeout esperando Elasticsearch. Continuando..." -ForegroundColor Yellow
-        break
-    }
-    Write-Host "   Esperando... ($timeout/$maxTimeout segundos)" -ForegroundColor Cyan
-} while ($true)
-
-# Resto de servicios ops
 kubectl apply -f services\ops\otel-collector-service.yaml
 kubectl apply -f deployments\ops\otel-collector-deployment.yaml
 
@@ -128,9 +102,6 @@ kubectl apply -f deployments\ops\node-exporter-daemonset.yaml
 
 kubectl apply -f services\ops\grafana-service.yaml
 kubectl apply -f deployments\ops\grafana-deployment.yaml
-
-kubectl apply -f services\ops\kibana-service.yaml
-kubectl apply -f deployments\ops\kibana-deployment.yaml
 
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
@@ -159,6 +130,5 @@ kubectl get pods -n pharmago -o wide
 Write-Host "`nPara ver los servicios expuestos:" -ForegroundColor Cyan
 Write-Host "  Frontend:     minikube service pharmago-ui -n pharmago --url" -ForegroundColor White
 Write-Host "  Grafana:      minikube service grafana -n pharmago --url" -ForegroundColor White
-Write-Host "  Kibana:       minikube service kibana -n pharmago --url" -ForegroundColor White
 Write-Host "  Prometheus:   minikube service prometheus -n pharmago --url" -ForegroundColor White
 

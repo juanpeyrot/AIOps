@@ -62,16 +62,6 @@ kubectl port-forward svc/grafana 3000:3000 -n pharmago &
 echo $! >> "$PID_FILE"
 echo "  Grafana:      http://127.0.0.1:3000 (admin/admin)"
 
-# Kibana
-kubectl port-forward svc/kibana 5601:5601 -n pharmago &
-echo $! >> "$PID_FILE"
-echo "  Kibana:       http://127.0.0.1:5601"
-
-# Elasticsearch (para verificar índices: curl http://127.0.0.1:9200/_cat/indices?v)
-kubectl port-forward svc/elasticsearch 9200:9200 -n pharmago &
-echo $! >> "$PID_FILE"
-echo "  Elasticsearch: http://127.0.0.1:9200"
-
 echo ""
 echo "Port-forwards activos. Para detener: ./port-forward.sh --stop"
 echo ""

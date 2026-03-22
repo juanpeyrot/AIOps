@@ -15,7 +15,7 @@ fi
 # Verificar que minikube está corriendo
 if ! minikube status &> /dev/null; then
     echo "Error: Minikube no está corriendo."
-    echo "Ejecuta: minikube start --memory=6144 --cpus=4"
+    echo "Ejecuta: minikube start --memory=4096 --cpus=4"
     exit 1
 fi
 
@@ -44,7 +44,6 @@ kubectl apply -f configmaps/otel-collector-config.yaml
 kubectl apply -f configmaps/grafana-provisioning.yaml
 kubectl apply -f configmaps/grafana-dashboards.yaml
 kubectl apply -f configmaps/grafana-dashboard-infra.yaml
-kubectl apply -f configmaps/fluent-bit-config.yaml
 
 echo ""
 echo "5. Creando StorageClass y PersistentVolumes..."
@@ -53,7 +52,7 @@ kubectl apply -f persistent-volumes/storage-class.yaml
 # Eliminar solo PVs en estado Released (huérfanos tras borrar el namespace).
 # No intentar borrar PVs Bound: kubectl delete se bloquearía indefinidamente.
 echo "   Limpiando PVs huérfanos (Released)..."
-for pv in sql-pv elasticsearch-pv prometheus-pv grafana-pv; do
+for pv in sql-pv prometheus-pv grafana-pv; do
   status=$(kubectl get pv $pv -o jsonpath='{.status.phase}' 2>/dev/null || echo "NotFound")
   if [ "$status" = "Released" ] || [ "$status" = "Failed" ]; then
     kubectl delete pv $pv --ignore-not-found=true 2>/dev/null || true
@@ -62,7 +61,6 @@ done
 sleep 2
 
 kubectl apply -f persistent-volumes/sql-pv.yaml
-kubectl apply -f persistent-volumes/elasticsearch-pv.yaml
 kubectl apply -f persistent-volumes/prometheus-pv.yaml
 kubectl apply -f persistent-volumes/grafana-pv.yaml
 
@@ -91,29 +89,6 @@ fi
 
 echo ""
 echo "7. Desplegando servicios de observabilidad..."
-# Elasticsearch primero
-kubectl apply -f services/ops/elasticsearch-service.yaml
-kubectl apply -f deployments/ops/elasticsearch-deployment.yaml
-
-# Esperar a que Elasticsearch esté listo
-echo "   Esperando a que Elasticsearch esté listo..."
-timeout=0
-max_timeout=300
-while [ $timeout -lt $max_timeout ]; do
-    pod_ready=$(kubectl get pod -l app=elasticsearch -n pharmago -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)
-    if [ "$pod_ready" = "True" ]; then
-        echo "   Elasticsearch listo!"
-        break
-    fi
-    sleep 5
-    timeout=$((timeout + 5))
-    echo "   Esperando... ($timeout/$max_timeout segundos)"
-done
-if [ $timeout -ge $max_timeout ]; then
-    echo "   Timeout esperando Elasticsearch. Continuando..."
-fi
-
-# Resto de servicios ops
 kubectl apply -f services/ops/otel-collector-service.yaml
 kubectl apply -f deployments/ops/otel-collector-deployment.yaml
 
@@ -127,15 +102,6 @@ kubectl apply -f deployments/ops/node-exporter-daemonset.yaml
 
 kubectl apply -f services/ops/grafana-service.yaml
 kubectl apply -f deployments/ops/grafana-deployment.yaml
-
-kubectl apply -f services/ops/kibana-service.yaml
-kubectl apply -f deployments/ops/kibana-deployment.yaml
-
-# Fluent Bit: recolecta logs de pods y los envía a Elasticsearch (pharmago-logs-*)
-kubectl apply -f deployments/ops/fluent-bit-serviceaccount.yaml
-kubectl apply -f deployments/ops/fluent-bit-clusterrole.yaml
-kubectl apply -f deployments/ops/fluent-bit-clusterrolebinding.yaml
-kubectl apply -f deployments/ops/fluent-bit-daemonset.yaml
 
 echo ""
 echo "8. Desplegando servicios backend..."
@@ -166,6 +132,5 @@ echo ""
 echo "O con minikube service:"
 echo "  Frontend:     minikube service pharmago-ui -n pharmago --url"
 echo "  Grafana:      minikube service grafana -n pharmago --url"
-echo "  Kibana:       minikube service kibana -n pharmago --url"
 echo "  Prometheus:   minikube service prometheus -n pharmago --url"
 

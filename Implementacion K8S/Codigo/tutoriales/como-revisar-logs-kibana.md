@@ -1,6 +1,10 @@
 # Guía de Logging con Elasticsearch + Kibana + Logstash - PharmaGo
 
-## 📋 Configuración Implementada
+> **⚠️ OBSOLETO**: La infraestructura de logs centralizados (Elasticsearch, Kibana, Logstash, Fluent Bit) ha sido **removida** del proyecto para reducir consumo de RAM. Esta guía se mantiene como referencia histórica.
+>
+> **Para ver logs ahora**: usa `kubectl logs -n pharmago <pod-name>` (K8s) o `docker logs <container-name>` (Docker Compose).
+
+## 📋 Configuración Implementada (obsoleto)
 
 ### Stack de Logging Completo
 

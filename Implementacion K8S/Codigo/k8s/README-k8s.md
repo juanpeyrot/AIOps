@@ -9,9 +9,9 @@ La aplicación se ejecuta en un único nodo (minikube) con todos los componentes
 - **Frontend**: pharmago-ui
 - **Backend**: pharmago-api-gateway, pharmago-users-service, pharmago-pharmacy-service
 - **Base de datos**: pharmago-db (SQL Server Express)
-- **Telemetría y observabilidad**: otlp-collector, prometheus, grafana, elasticsearch, kibana, fluent-bit
+- **Telemetría y observabilidad**: otlp-collector, prometheus, grafana
 
-**Requisito de memoria**: El nodo debe tener al menos 5-6GB de RAM para soportar Elasticsearch (1.5Gi), Kibana (2Gi), SQL Server Express (1.5Gi) y el resto de servicios.
+**Requisito de memoria**: El nodo debe tener al menos 3-4GB de RAM para soportar SQL Server Express (1.5Gi), Prometheus, Grafana y el resto de servicios. La infraestructura de logs centralizados (Elasticsearch, Kibana, Fluent Bit) ha sido removida para reducir consumo de RAM.
 
 ## Prerrequisitos
 
@@ -21,17 +21,17 @@ La aplicación se ejecuta en un único nodo (minikube) con todos los componentes
 
 ## Configuración Inicial
 
-### 1. Crear cluster Minikube (un nodo, 6GB RAM)
+### 1. Crear cluster Minikube (un nodo, 4GB RAM)
 
 ```bash
-# Crear cluster con suficiente memoria para telemetría (Elasticsearch, Kibana, etc.)
-minikube start --memory=6144 --cpus=4
+# Crear cluster con memoria suficiente para la aplicación
+minikube start --memory=4096 --cpus=4
 
 # Verificar nodo
 kubectl get nodes
 ```
 
-**Importante**: Usa al menos 6GB de RAM. Con menos, Elasticsearch y otros pods de observabilidad pueden fallar por OOM.
+**Importante**: Usa al menos 4GB de RAM. Con menos, algunos pods pueden fallar por OOM.
 
 ### 2. Etiquetar nodo
 
@@ -110,11 +110,7 @@ kubectl apply -f services/ops/db-service.yaml
 kubectl apply -f deployments/ops/db-deployment.yaml
 kubectl wait --for=condition=ready pod -l app=pharmago-db -n pharmago --timeout=300s
 
-# 6. Ops services (Elasticsearch primero)
-kubectl apply -f services/ops/elasticsearch-service.yaml
-kubectl apply -f deployments/ops/elasticsearch-deployment.yaml
-kubectl wait --for=condition=ready pod -l app=elasticsearch -n pharmago --timeout=300s
-
+# 6. Ops services
 kubectl apply -f services/ops/
 kubectl apply -f deployments/ops/
 
@@ -174,7 +170,6 @@ Servicios disponibles en:
 - **BD (SQL Server)**: `127.0.0.1,11433` (sa / Str0ngP@ssword!)
 - **Prometheus**: http://127.0.0.1:9090
 - **Grafana**: http://127.0.0.1:3000 (admin/admin)
-- **Kibana**: http://127.0.0.1:5601
 
 Para detener: `./port-forward.sh --stop`
 
@@ -191,12 +186,6 @@ minikube service pharmago-ui -n pharmago --url
 ```bash
 minikube service grafana -n pharmago --url
 # Credenciales: admin / admin
-```
-
-### Kibana
-
-```bash
-minikube service kibana -n pharmago --url
 ```
 
 ### Prometheus
@@ -224,7 +213,7 @@ kubectl apply -f deployments/<component>/<deployment>.yaml
 
 ### Pods no se inician (Pending / telemetría)
 
-Si los pods de telemetría (otel-collector, prometheus, grafana, elasticsearch, kibana, fluent-bit) quedan en `Pending`:
+Si los pods de telemetría (otel-collector, prometheus, grafana) quedan en `Pending`:
 
 1. **Falta etiqueta en el nodo**: Los pods requieren `node-type=all`.
    - Usa el script `apply-k8s.sh` que etiqueta automáticamente, o
@@ -286,16 +275,16 @@ En Minikube, los PersistentVolumes usan `hostPath` con `DirectoryOrCreate`, que 
 ```bash
 # Conectarse al nodo y crear directorios manualmente
 minikube ssh
-sudo mkdir -p /mnt/data/{sql,elasticsearch,prometheus,grafana}
-sudo chmod 777 /mnt/data/{sql,elasticsearch,prometheus,grafana}
+sudo mkdir -p /mnt/data/{sql,prometheus,grafana}
+sudo chmod 777 /mnt/data/{sql,prometheus,grafana}
 exit
 ```
 
 **Nota**: El deployment de SQL Server incluye un initContainer que configura los permisos para el usuario `mssql` (UID 10001).
 
-### Elasticsearch OOMKilled (Out of Memory)
+### Pods OOMKilled (Out of Memory)
 
-Si Elasticsearch está en `CrashLoopBackOff` con `OOMKilled`:
+Si algún pod está en `CrashLoopBackOff` con `OOMKilled`:
 
 1. **Verificar memoria disponible en el nodo:**
    ```bash
@@ -306,48 +295,8 @@ Si Elasticsearch está en `CrashLoopBackOff` con `OOMKilled`:
    ```bash
    minikube stop
    minikube delete
-   minikube start --memory=6144 --cpus=4
+   minikube start --memory=4096 --cpus=4
    ```
-
-3. **Reducir memoria heap de Elasticsearch:**
-   Edita `deployments/ops/elasticsearch-deployment.yaml` y reduce `ES_JAVA_OPTS`:
-   ```yaml
-   - name: ES_JAVA_OPTS
-     value: "-Xms1g -Xmx1g"  # Reducir de 2g a 1g
-   ```
-   Luego aumenta el límite de memoria del contenedor a 3-4Gi para compensar.
-
-4. **Deshabilitar características que consumen memoria:**
-   Agrega estas variables de entorno en el deployment:
-   ```yaml
-   - name: xpack.monitoring.collection.enabled
-     value: "false"
-   - name: xpack.security.enabled
-     value: "false"  # Ya está configurado
-   ```
-
-5. **Verificar logs:**
-   ```bash
-   kubectl logs -n pharmago -l app=elasticsearch --tail=50
-   ```
-
-**Nota**: Elasticsearch requiere al menos 2GB de heap de Java y memoria adicional para el sistema operativo y otros procesos. En un entorno con recursos limitados (Minikube), considera usar una versión más ligera o deshabilitar características no esenciales.
-
-### Kibana no está Ready
-
-Si Kibana está `Running` pero no `Ready`:
-
-1. **Verificar que Elasticsearch está funcionando:**
-   ```bash
-   kubectl get pods -n pharmago -l app=elasticsearch
-   ```
-
-2. **Verificar logs de Kibana:**
-   ```bash
-   kubectl logs -n pharmago -l app=kibana --tail=50
-   ```
-
-3. **Kibana espera a Elasticsearch:** Si Elasticsearch no está listo, Kibana no puede conectarse y permanecerá en `Running` pero no `Ready`.
 
 ## Limpieza (Equivalente a `docker-compose down`)
 
@@ -371,7 +320,7 @@ chmod +x cleanup.sh
 kubectl delete namespace pharmago
 
 # Eliminar PersistentVolumes (están fuera del namespace)
-kubectl delete pv sql-pv elasticsearch-pv prometheus-pv grafana-pv
+kubectl delete pv sql-pv prometheus-pv grafana-pv
 ```
 
 ### Opción 3: Eliminar recursos individualmente
@@ -390,7 +339,7 @@ kubectl delete -f namespace.yaml
 
 ## Notas Importantes
 
-1. **Logs**: Fluent Bit (DaemonSet) recolecta los logs de los pods y los envía directamente a Elasticsearch con índice `pharmago-logs-*`. Kibana se usa para visualizarlos.
+1. **Logs**: La infraestructura centralizada de logs (Elasticsearch, Kibana, Fluent Bit, Logstash) ha sido removida para reducir RAM. Para ver logs, usa `kubectl logs -n pharmago <pod-name>` o `docker logs <container>`.
 
 2. **PersistentVolumes**: Los PVs usan `hostPath` que es adecuado para desarrollo pero no para producción. En producción, usa storage classes apropiadas.
 
@@ -407,14 +356,11 @@ k8s/
 ├── namespace.yaml
 ├── configmaps/
 │   ├── prometheus-config.yaml
-│   ├── otel-collector-config.yaml
-│   ├── grafana-provisioning.yaml
-│   └── fluent-bit-config.yaml
+│   └── otel-collector-config.yaml
 ├── secrets/
 │   └── db-secret.yaml
 ├── persistent-volumes/
 │   ├── sql-pv.yaml
-│   ├── elasticsearch-pv.yaml
 │   ├── prometheus-pv.yaml
 │   └── grafana-pv.yaml
 ├── deployments/
@@ -429,9 +375,8 @@ k8s/
 │       ├── otel-collector-deployment.yaml
 │       ├── prometheus-deployment.yaml
 │       ├── grafana-deployment.yaml
-│       ├── elasticsearch-deployment.yaml
-│       ├── kibana-deployment.yaml
-│       └── fluent-bit-daemonset.yaml
+│       ├── prometheus-deployment.yaml
+│       └── grafana-deployment.yaml
 ├── services/
 │   ├── frontend/
 │   │   └── ui-service.yaml
@@ -444,8 +389,8 @@ k8s/
 │       ├── otel-collector-service.yaml
 │       ├── prometheus-service.yaml
 │       ├── grafana-service.yaml
-│       ├── elasticsearch-service.yaml
-│       └── kibana-service.yaml
+│       ├── prometheus-service.yaml
+│       └── grafana-service.yaml
 ├── build-images.sh
 ├── apply-k8s.sh
 ├── cleanup.sh
