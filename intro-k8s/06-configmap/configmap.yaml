@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  GREETING: "Hola desde ConfigMap!!!"
+  LOG_LEVEL: "debug"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: configmap-pod
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command: ["sh", "-c", "echo $GREETING && echo $LOG_LEVEL && sleep 3600"]
+    env:
+    - name: GREETING
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: GREETING
+    - name: LOG_LEVEL
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: LOG_LEVEL

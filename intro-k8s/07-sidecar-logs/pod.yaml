@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sidecar-pod
+spec:
+  containers:
+  - name: main
+    image: busybox
+    command: ["sh", "-c", "while true; do echo $(date) main-log; sleep 2; done"]
+  - name: sidecar
+    image: busybox
+    command: ["sh", "-c", "while true; do echo $(date) sidecar-log; sleep 3; done"]

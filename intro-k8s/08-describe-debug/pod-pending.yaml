@@ -1,0 +1,16 @@
+# Pod que puede quedar Pending (por recurso inexistente o cuota)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-pending
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    resources:
+      requests:
+        memory: "9999Gi"
+        cpu: "9999"
+  # O usar nodeSelector con label que no existe:
+  # nodeSelector:
+  #   disk: ssd
