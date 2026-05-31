@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pharmago-jaeger
+  namespace: pharmago
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pharmago-jaeger
+  template:
+    metadata:
+      labels:
+        app: pharmago-jaeger
+    spec:
+      containers:
+      - name: jaeger
+        image: jaegertracing/all-in-one:latest
+        ports:
+        - containerPort: 16686
+          name: ui
+        - containerPort: 4317
+          name: otlp-grpc
+        env:
+        - name: COLLECTOR_OTLP_ENABLED
+          value: "true"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

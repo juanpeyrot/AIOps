@@ -61,13 +61,13 @@ spec:
           subPath: prometheus.yml
         - name: prometheus-storage
           mountPath: /prometheus
-        # Recursos reducidos para nodos ~5GB (proyecto docente)
+        # Subido a 1Gi: Prometheus acumula datos en RAM con el tiempo (WAL + head chunks)
         resources:
           requests:
             memory: "256Mi"
             cpu: "250m"
           limits:
-            memory: "512Mi"
+            memory: "1Gi"
             cpu: "500m"
         startupProbe:
           httpGet:

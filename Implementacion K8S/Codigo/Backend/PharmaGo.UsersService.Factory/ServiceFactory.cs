@@ -11,6 +11,8 @@ using PharmaGo.IDataAccess;
 using Microsoft.Extensions.Hosting;
 using InstrumentationInterface;
 using Instrumentation;
+using Polly;
+using Polly.Extensions.Http;
 
 
 namespace PharmaGo.UsersService.Factory
@@ -24,14 +26,32 @@ namespace PharmaGo.UsersService.Factory
             serviceCollection.AddScoped<IUsersManager, UsersManager>();
             serviceCollection.AddScoped<IInvitationManager, InvitationManager>();
             serviceCollection.AddScoped<IRoleManager, RoleManager>();
-            
+
             serviceCollection.AddHttpClient<PharmaGo.UsersService.HttpClients.PharmacyServiceClient>(client =>
             {
                 var serviceUrl = configuration["ServiceUrls:PharmacyService"] ?? "http://127.0.0.1:5002";
                 client.BaseAddress = new Uri(serviceUrl);
                 client.Timeout = TimeSpan.FromSeconds(30);
-            });
+            })
+            .AddPolicyHandler(GetRetryPolicy())
+            .AddPolicyHandler(GetCircuitBreakerPolicy());
         }
+
+        // 3 reintentos con backoff exponencial: 2s, 4s, 8s
+        private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>
+            HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .WaitAndRetryAsync(
+                    retryCount: 3,
+                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+
+        // Abre el circuito tras 5 fallas consecutivas, espera 30s antes de reintentar
+        private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy() =>
+            HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .CircuitBreakerAsync(
+                    handledEventsAllowedBeforeBreaking: 5,
+                    durationOfBreak: TimeSpan.FromSeconds(30));
 
         public static void RegisterDataAccessServices(this IServiceCollection serviceCollection, IConfiguration configuration)
         {
