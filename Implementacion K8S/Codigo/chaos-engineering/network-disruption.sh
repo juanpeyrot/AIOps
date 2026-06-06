@@ -6,7 +6,14 @@
 # Observar en Grafana: latencia p95 sube, tasa de errores aumenta.
 # El Circuit Breaker en UsersService debería abrirse tras 5 fallas consecutivas.
 #
-# Requiere: pod con iproute2 (tc) disponible.
+# Cómo funciona: la imagen de la app (aspnet:6.0) no trae `tc` (iproute2).
+# En vez de exec dentro del pod, se inyecta un contenedor EFÍMERO `netshoot`
+# con el perfil `netadmin` (capability NET_ADMIN). El contenedor efímero
+# comparte el network namespace del pod, así que el netem sobre eth0 afecta
+# el tráfico real del pod sin modificar la imagen de producción.
+#
+# Requiere: Kubernetes >= 1.27 (kubectl debug --profile netadmin).
+# La primera ejecución descarga la imagen nicolaka/netshoot (puede tardar).
 
 DEPLOY="${1:-pharmago-pharmacy-service}"
 LOSS="${2:-50}"
@@ -30,11 +37,14 @@ echo "  Observar en Grafana: pharmago_http_errors_total, request_duration"
 echo "  Si el Circuit Breaker esta activo, UsersService dejara de llamar a PharmacyService"
 echo ""
 
-kubectl exec -n pharmago "$POD" -- sh -c "
-  tc qdisc add dev eth0 root netem loss ${LOSS}% delay ${DELAY}ms 2>/dev/null || \
-  tc qdisc change dev eth0 root netem loss ${LOSS}% delay ${DELAY}ms
-  echo 'Disrupcion de red activa...'
-  sleep ${SECS}
-  tc qdisc del dev eth0 root 2>/dev/null
-  echo 'Red restaurada.'
-"
+kubectl debug -n pharmago "$POD" \
+  --image=nicolaka/netshoot \
+  --profile=netadmin \
+  -q -- sh -c "
+    tc qdisc add dev eth0 root netem loss ${LOSS}% delay ${DELAY}ms 2>/dev/null || \
+    tc qdisc change dev eth0 root netem loss ${LOSS}% delay ${DELAY}ms
+    echo 'Disrupcion de red activa...'
+    sleep ${SECS}
+    tc qdisc del dev eth0 root 2>/dev/null
+    echo 'Red restaurada.'
+  "
