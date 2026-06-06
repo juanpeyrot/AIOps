@@ -48,7 +48,10 @@ temp/
 *.tmp
 
 # === Kubernetes / local ===
-k8s/.port-forward.pids
+.port-forward.pids
+
+# === Jupyter ===
+.ipynb_checkpoints/
 
 # === Secrets (evitar subir credenciales) ===
 *.pfx

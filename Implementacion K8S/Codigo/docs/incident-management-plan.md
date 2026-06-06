@@ -1,6 +1,18 @@
 # Plan de Mitigación de Incidentes Operacionales — PharmaGo
 
-Framework basado en Atlassian Incident Management.
+Este plan implementa todas las fases del **framework de Atlassian Incident
+Management** (*Detect → Respond → Recover → Learn*, con comunicación transversal).
+Cada fase del framework se cubre en una sección de este documento:
+
+| Fase Atlassian | Sección en este plan |
+|----------------|----------------------|
+| **Detect** (detectar) | Fase 1: Detección |
+| **Respond** (responder: triage + movilizar + comunicar) | Fase 2: Respuesta |
+| **Recover** (mitigar y resolver) | Fase 3: Mitigación + Fase 4: Resolución |
+| **Learn** (aprender: post-incident review) | Fase 5: Post-mortem |
+
+La comunicación (canal de incidente, roles, niveles de severidad) es transversal a
+todas las fases, como prescribe Atlassian.
 
 ---
 
