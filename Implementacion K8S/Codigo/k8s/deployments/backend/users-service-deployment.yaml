@@ -26,6 +26,7 @@ spec:
               - key: node-type
                 operator: In
                 values: [backend, all]
+      terminationGracePeriodSeconds: 30
       containers:
       - name: pharmago-users-service
         image: pharmago-users-service:latest
@@ -51,6 +52,10 @@ spec:
           limits:
             memory: "384Mi"
             cpu: "500m"
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]
         startupProbe:
           httpGet:
             path: /health
