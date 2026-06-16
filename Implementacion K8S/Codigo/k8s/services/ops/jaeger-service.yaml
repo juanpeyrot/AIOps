@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pharmago-jaeger
+  namespace: pharmago
+spec:
+  selector:
+    app: pharmago-jaeger
+  ports:
+  - name: ui
+    port: 16686
+    targetPort: 16686
+    nodePort: 30686
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+  type: NodePort

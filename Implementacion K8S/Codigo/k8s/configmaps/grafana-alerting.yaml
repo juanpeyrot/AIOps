@@ -1,0 +1,243 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alerting
+  namespace: pharmago
+data:
+  pharmago-alerts.yaml: |
+    apiVersion: 1
+    groups:
+      - orgId: 1
+        name: pharmago-anomaly-alerts
+        folder: PharmaGo
+        interval: 1m
+        rules:
+          # 1) CPU de contenedor por encima del 80%
+          - uid: pharmago_container_cpu_high
+            title: "Contenedor - CPU alta (>80%)"
+            condition: C
+            for: 2m
+            noDataState: NoData
+            execErrState: Error
+            labels:
+              severity: warning
+              tipo: recurso
+            annotations:
+              summary: "Uso de CPU de un contenedor de pharmago por encima del 80% durante 2m"
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 600
+                  to: 0
+                datasourceUid: prometheus
+                model:
+                  refId: A
+                  editorMode: code
+                  expr: 'sum(rate(container_cpu_usage_seconds_total{namespace="pharmago",container!=""}[5m])) by (pod)'
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  refId: C
+                  type: threshold
+                  expression: A
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  conditions:
+                    - type: query
+                      evaluator:
+                        type: gt
+                        params: [0.8]
+                      operator:
+                        type: and
+                      query:
+                        params: [C]
+                      reducer:
+                        type: last
+
+          # 2) Memoria de contenedor por encima del 85% de su límite
+          - uid: pharmago_container_mem_high
+            title: "Contenedor - Memoria alta (>85% del límite)"
+            condition: C
+            for: 2m
+            noDataState: NoData
+            execErrState: Error
+            labels:
+              severity: warning
+              tipo: recurso
+            annotations:
+              summary: "Memoria de un contenedor por encima del 85% de su límite durante 2m"
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 600
+                  to: 0
+                datasourceUid: prometheus
+                model:
+                  refId: A
+                  editorMode: code
+                  expr: 'sum(container_memory_working_set_bytes{namespace="pharmago",container!=""}) by (pod) / sum(container_spec_memory_limit_bytes{namespace="pharmago",container!=""}) by (pod)'
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  refId: C
+                  type: threshold
+                  expression: A
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  conditions:
+                    - type: query
+                      evaluator:
+                        type: gt
+                        params: [0.85]
+                      operator:
+                        type: and
+                      query:
+                        params: [C]
+                      reducer:
+                        type: last
+
+          # 3) Tasa de errores HTTP por encima del 5%
+          - uid: pharmago_http_error_rate
+            title: "HTTP - Tasa de errores alta (>5%)"
+            condition: C
+            for: 2m
+            noDataState: NoData
+            execErrState: Error
+            labels:
+              severity: critical
+              tipo: aplicacion
+            annotations:
+              summary: "Más del 5% de las requests HTTP están fallando durante 2m"
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 600
+                  to: 0
+                datasourceUid: prometheus
+                model:
+                  refId: A
+                  editorMode: code
+                  expr: 'sum(rate(pharmago_http_errors_total[2m])) / clamp_min(sum(rate(pharmago_http_requests_total[2m])), 1)'
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  refId: C
+                  type: threshold
+                  expression: A
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  conditions:
+                    - type: query
+                      evaluator:
+                        type: gt
+                        params: [0.05]
+                      operator:
+                        type: and
+                      query:
+                        params: [C]
+                      reducer:
+                        type: last
+
+          # 4) Latencia p95 por encima de 2000ms
+          - uid: pharmago_http_latency_p95
+            title: "HTTP - Latencia p95 alta (>2000ms)"
+            condition: C
+            for: 2m
+            noDataState: NoData
+            execErrState: Error
+            labels:
+              severity: warning
+              tipo: aplicacion
+            annotations:
+              summary: "La latencia p95 de las requests HTTP supera los 2000ms durante 2m"
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 600
+                  to: 0
+                datasourceUid: prometheus
+                model:
+                  refId: A
+                  editorMode: code
+                  expr: 'histogram_quantile(0.95, sum(rate(pharmago_http_request_duration_milliseconds_bucket[5m])) by (le))'
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  refId: C
+                  type: threshold
+                  expression: A
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  conditions:
+                    - type: query
+                      evaluator:
+                        type: gt
+                        params: [2000]
+                      operator:
+                        type: and
+                      query:
+                        params: [C]
+                      reducer:
+                        type: last
+
+          # 5) Memoria disponible del nodo por debajo del 15%
+          - uid: pharmago_node_mem_low
+            title: "Nodo - Memoria disponible baja (<15%)"
+            condition: C
+            for: 2m
+            noDataState: NoData
+            execErrState: Error
+            labels:
+              severity: critical
+              tipo: infraestructura
+            annotations:
+              summary: "La memoria disponible del nodo físico cayó por debajo del 15%"
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 600
+                  to: 0
+                datasourceUid: prometheus
+                model:
+                  refId: A
+                  editorMode: code
+                  expr: 'sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)'
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  refId: C
+                  type: threshold
+                  expression: A
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  conditions:
+                    - type: query
+                      evaluator:
+                        type: lt
+                        params: [0.15]
+                      operator:
+                        type: and
+                      query:
+                        params: [C]
+                      reducer:
+                        type: last
