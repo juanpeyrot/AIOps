@@ -23,5 +23,12 @@
     <ProjectReference Include="..\PharmaGo.UsersService.IBusinessLogic\PharmaGo.UsersService.IBusinessLogic.csproj" />
   </ItemGroup>
 
+  <!-- HttpClients/*.cs se compila como parte de PharmaGo.UsersService.Factory (linkeado ahi
+       para el registro de DI); se excluye aca para no duplicar el tipo en dos assemblies,
+       lo que rompia la resolucion de DI (el tipo "duplicado" no es el mismo tipo en runtime). -->
+  <ItemGroup>
+    <Compile Remove="HttpClients\**\*.cs" />
+  </ItemGroup>
+
 </Project>
 

@@ -39,5 +39,11 @@ namespace PharmaGo.UsersService.HttpClients
                 return null;
             }
         }
+
+        public async Task<bool> PingAsync()
+        {
+            var response = await _httpClient.GetAsync("/health");
+            return response.IsSuccessStatusCode;
+        }
     }
 }
